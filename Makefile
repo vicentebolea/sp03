@@ -9,8 +9,8 @@ all: csim test-trans tracegen
 	# Generate a handin tar file each time you compile
 	-tar -cvf sp03_00000000.tar csim.c trans.c 
 
-csim: csim.c cachelab.c cachelab.h
-	$(CC) $(CFLAGS) -o csim csim.c cachelab.c -lm 
+csim: csim.c cachelab.c cachelab.h lrudriver.h lrudriver.c lrucache.h lrucache.c
+	$(CC) $(CFLAGS) -o csim csim.c cachelab.c lrudriver.c lrucache.c -lm 
 
 test-trans: test-trans.c trans.o cachelab.c cachelab.h
 	$(CC) $(CFLAGS) -o test-trans test-trans.c cachelab.c trans.o 
