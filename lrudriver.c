@@ -11,8 +11,12 @@ struct options_t {
 };
 
 // load {{{
-void lrudriver_load_options(options_t* opt, int argc, char** argv) {
+void lrudriver_init(options_t** opt, int argc, char** argv) {
 
+}
+
+void lrudriver_destroy(options_t* opt) {
+  free(opt);
 }
 // }}} 
 // getters {{{
