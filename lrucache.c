@@ -21,7 +21,10 @@ struct cache_t {
   uint32_t assoc;
 };
 
-int cmp_tags(const void* tag, const void* elem) { return (*(uint32_t*)tag == ((cache_node_t*)elem)->tag); }
+int cmp_tags(const void* tag, const void* elem) { 
+  cache_node_t* node = (cache_node_t*)elem;
+  return !(node->is_being_used && (*(uint32_t*)tag == node->tag));
+}
 int cmp_empty(const void* dumb, const void* elem) { return ((cache_node_t*)elem)->is_being_used; }
 // get_index {{{
 // It will compute the index of a given address
@@ -104,18 +107,21 @@ cache_node_t* cache_evict (cache_t* cache, uint32_t offset) {
 //}
 //}}}
 // cache insert {{{
-bool cache_insert(cache_t* cache, uint32_t tag, uint32_t index) {
+void cache_insert(cache_t* cache, uint32_t tag, uint32_t index) {
   uint32_t offset = index * cache->assoc;
   size_t set_size = cache->assoc;
   cache_node_t* set = &cache->cache[offset];
 
-  cache_node_t* node = lsearch(&tag, &set, &set_size, sizeof(cache_node_t), cmp_tags);
+  cache_node_t* node = lfind(&tag, set, &set_size, sizeof(cache_node_t), cmp_tags);
   if (!node) {
-    node = lsearch(0, &set, &set_size, sizeof(cache_node_t), cmp_empty);
+    node = lfind(0, set, &set_size, sizeof(cache_node_t), cmp_empty);
+    cache->misses++;
 
     if (!node) {
       node = cache_evict(cache, offset);
     }
+  } else {
+    cache->hits++;
   }
 
   cache_increment_time(cache, offset);
@@ -123,8 +129,6 @@ bool cache_insert(cache_t* cache, uint32_t tag, uint32_t index) {
   node->tag = tag;
   node->time = 0;
   node->is_being_used = true;
-
-  return (node != NULL);
 }
 //}}}
 // init & destroy{{{
@@ -157,22 +161,11 @@ void lrucache_run_tracefile(cache_t* cache) {
   lrudriver_get_file(cache->opt, &filename);
   FILE* file = fopen(filename, "r");
 
-  while (feof(file)) {
-    char type;
-    uint32_t addr;
-    uint32_t addr_size;
-
-    fscanf(file, "%c %x,%d\n", &type, &addr, &addr_size);
-
+  uint32_t addr;
+  while (fscanf(file, " %*c %x,%*d", &addr) != EOF) {
     uint32_t tag =   get_tag(addr, log2(sets), log2(blocks));
     uint32_t index = get_index(addr, log2(sets), log2(blocks));
-    bool ret = cache_insert(cache, tag, index);
-
-    if(ret) {
-      cache->hits++;
-    } else {
-      cache->misses++;
-    }
+    cache_insert(cache, tag, index);
   }
 }
 // }}}
