@@ -29,9 +29,12 @@ int cmp_empty(const void* dumb, const void* elem) { return ((cache_node_t*)elem)
 // get_index {{{
 // It will compute the index of a given address
 static uint32_t get_index (uint32_t addr, uint32_t index_width, uint32_t block_width) {
+  if (index_width == 0) {
+    return 0;
+  }
   uint32_t output = 0;
 
-  block_width += 4;
+  //block_width += 4;
   uint32_t index_pos = index_width + block_width;
   uint32_t mask_left  = ((1 << (index_pos)) - 1); //! left = 4  then mask: 0000 1111 1111
 
@@ -45,7 +48,7 @@ static uint32_t get_index (uint32_t addr, uint32_t index_width, uint32_t block_w
 // get_tag {{{
 // It will compute the tag of a given address
 static uint32_t get_tag (uint32_t addr, uint32_t index_width, uint32_t block_width) {
-  uint32_t shift = index_width + block_width + 4; //word size = 4
+  uint32_t shift = index_width + block_width ; //word size = 4
   addr >>= shift;
 
   return addr;
@@ -56,7 +59,7 @@ void cache_increment_time(cache_t* cache, uint32_t offset) {
   int i = 0;
   do {
     cache->cache[offset + i].time++;
-  } while (i++ < cache->assoc);
+  } while (++i < cache->assoc);
 }
 //}}}
 // cache_find_node {{{
@@ -139,7 +142,7 @@ void lrucache_init(cache_t** cache, options_t* opts) {
   uint32_t sets   = lrudriver_get_sets(opts);
   uint32_t assoc  = lrudriver_get_associativity(opts);
 
-  uint32_t size_of_cache = sets*assoc;
+  uint32_t size_of_cache = pow(2,sets)*assoc;
   ca->cache = calloc(sizeof(cache_node_t), size_of_cache);
   ca->hits   = 0;
   ca->misses = 0;
@@ -163,10 +166,12 @@ void lrucache_run_tracefile(cache_t* cache) {
 
   uint32_t addr;
   while (fscanf(file, " %*c %x,%*d", &addr) != EOF) {
-    uint32_t tag =   get_tag(addr, log2(sets), log2(blocks));
-    uint32_t index = get_index(addr, log2(sets), log2(blocks));
+    uint32_t tag =   get_tag(addr, sets, blocks);
+    uint32_t index = get_index(addr, sets, blocks);
     cache_insert(cache, tag, index);
+    printf ("Addr: %u %u %u H:%i M:%i E:%i\n", addr, tag, index, cache->hits, cache->misses, cache->evictions);
   }
+  fclose(file);
 }
 // }}}
 // getters {{{
