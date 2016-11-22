@@ -1,3 +1,7 @@
+/* Author: Vicente Adolfo Bolea Sanchez 20131780 <vicente.bolea@gmail.com>
+ * Title: Assignment 3, System Programming, UNIST 
+ * License: GPL3
+ */
 #include "lrucache.h"
 #define _GNU_SOURCE
 #include <stdbool.h>
@@ -62,6 +66,7 @@ void lrucache_run_tracefile(cache_t* cache) {
   lrudriver_get_file(cache->opt, &filename);
   FILE* file = fopen(filename, "r");
 
+  // Start reading the file
   uint32_t addr;
   char type;
   char line[256] = {0};
@@ -71,17 +76,17 @@ void lrucache_run_tracefile(cache_t* cache) {
 
     if (type == 'M') {
       cache->hits++;
+
     } else if (type == 'I') {
       bzero(line, 256);
       continue;
     }
 
+    // Parse the input
     uint32_t tag =   get_tag(addr, sets, blocks);
     uint32_t index = get_index(addr, sets, blocks);
 
     cache_insert(cache, tag, index);
-    printf ("Type: %c Addr: %x %u %u H:%i M:%i E:%i\n", type, addr, tag, index, cache->hits, cache->misses, cache->evictions);
-
     bzero(line, 256);
   }
   fclose(file);
@@ -102,6 +107,7 @@ uint32_t lrucache_get_evictions(cache_t* cache) {
 // Private functions here:
 // 
 // Comparison functions {{{
+// Odd functions used to find elements inside our cache sets
 static int cmp_tags(const void* tag, const void* elem) { 
   cache_node_t* node = (cache_node_t*)elem;
   return !(node->is_being_used && (*(uint32_t*)tag == node->tag));
@@ -111,29 +117,22 @@ static int cmp_empty(const void* dumb, const void* elem) { return ((cache_node_t
 // get_index {{{
 // It will compute the index of a given address
 static uint32_t get_index (uint32_t addr, uint32_t index_width, uint32_t block_width) {
-  uint32_t output = 0;
-
-  //block_width += 4;
   uint32_t index_pos = index_width + block_width;
-  uint32_t mask_left  = ((1 << (index_pos)) - 1); //! left = 4  then mask: 0000 1111 1111
+  uint32_t mask_index = ((1 << (index_pos)) - 1); 
 
-  output = addr & mask_left;
+  uint32_t output = addr & mask_index;
 
-  output >>= block_width;
-
-  return output;
+  return output >> block_width;
 }
 // }}}
 // get_tag {{{
 // It will compute the tag of a given address
 static uint32_t get_tag (uint32_t addr, uint32_t index_width, uint32_t block_width) {
-  uint32_t shift = index_width + block_width ; //word size = 4
-  addr >>= shift;
-
-  return addr;
+  return addr >> (index_width + block_width);
 }
 // }}}
 // cache_increment_time {{{
+// Iterates and increment the time of each node in the cache 
 static void cache_increment_time(cache_t* cache, uint32_t offset) {
   int i = 0;
   do {
@@ -142,6 +141,7 @@ static void cache_increment_time(cache_t* cache, uint32_t offset) {
 }
 //}}}
 // cache_evict {{{
+// Simple max algorithm which iterates through the cache
 static cache_node_t* cache_evict (cache_t* cache, uint32_t offset) {
   cache->evictions++;
   int i = 0;                
@@ -165,19 +165,22 @@ static void cache_insert(cache_t* cache, uint32_t tag, uint32_t index) {
   size_t set_size = cache->assoc;
   cache_node_t* set = &cache->cache[offset];
 
+  // If the node is in the set 
   cache_node_t* node = lfind(&tag, set, &set_size, sizeof(cache_node_t), cmp_tags);
   if (!node) {
+    // If we have free space in the set
     node = lfind(0, set, &set_size, sizeof(cache_node_t), cmp_empty);
     cache->misses++;
 
     if (!node) {
+      // Free oldest node
       node = cache_evict(cache, offset);
     }
   } else {
     cache->hits++;
   }
 
-  cache_increment_time(cache, offset);
+  cache_increment_time(cache, offset); //Increment time by one to all the cache members
 
   *node = (cache_node_t) {.tag = tag, .time = 0, .is_being_used = true};
 }

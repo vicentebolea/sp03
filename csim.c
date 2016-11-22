@@ -1,3 +1,7 @@
+/* Author: Vicente Adolfo Bolea Sanchez 20131780 <vicente.bolea@gmail.com>
+ * Title: Assignment 3, System Programming, UNIST 
+ * License: GPL3
+ */
 #include "cachelab.h"
 #include "lrudriver.h"
 #include "lrucache.h"

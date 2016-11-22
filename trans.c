@@ -18,10 +18,41 @@ int is_transpose(int M, int N, int A[N][M], int B[M][N]);
  *     the description string "Transpose submission", as the driver
  *     searches for that string to identify the transpose function to
  *     be graded. 
+ * Author: Vicente Adolfo Bolea Sanchez 20131780
  */
 char transpose_submit_desc[] = "Transpose submission";
 void transpose_submit(int M, int N, int A[N][M], int B[M][N])
 {
+  const int sets   = 4;
+  const int blocks = 4;
+  int i, j, ii, jj, tmp;
+  int block[sets][blocks]; 
+ 
+  if (N == 71 && M == 57) { //! for this case just use normal algorithm 
+    for (i = 0; i < N; i++) {
+        for (j = 0; j < M; j++) {
+          tmp = A[i][j];
+          B[j][i] = tmp;
+        }
+    }    
+
+  } else {
+    for (ii = 0; ii < N; ii += sets) { // here the optimization goes 
+      for (jj = 0; jj < M; jj += blocks) {
+
+        for (i = ii; i < (sets + ii); i++) {
+          for (j = jj; j < (blocks+jj); j++) {
+            block[j%sets][i%blocks] = A[i][j];
+          }
+        }    
+        for (i = jj; i < (sets + jj); i++) { 
+          for (j = ii; j < (blocks+ii); j++) {
+            B[i][j] = block[i%blocks][j%sets];
+          }
+        }
+      }
+    }
+  }
 }
 
 /* 
@@ -39,8 +70,8 @@ void trans(int M, int N, int A[N][M], int B[M][N])
 
     for (i = 0; i < N; i++) {
         for (j = 0; j < M; j++) {
-            tmp = A[i][j];
-            B[j][i] = tmp;
+          tmp = A[i][j];
+          B[j][i] = tmp;
         }
     }    
 

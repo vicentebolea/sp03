@@ -1,3 +1,7 @@
+/* Author: Vicente Adolfo Bolea Sanchez 20131780 <vicente.bolea@gmail.com>
+ * Title: Assignment 3, System Programming, UNIST 
+ * License: GPL3
+ */
 #include "lrudriver.h"
 #include <unistd.h>
 #include <stdlib.h>
@@ -13,6 +17,7 @@ struct options_t {
 };
 
 // load {{{
+// Creates the option_t ADT and parse the command line input
 void lrudriver_init(options_t** opt, int argc, char** argv) {
   *opt = calloc(sizeof(options_t), 1);
   options_t* op = *opt;
@@ -44,6 +49,7 @@ void lrudriver_destroy(options_t* opt) {
 }
 // }}} 
 // getters {{{
+// Simple getters 
 uint32_t lrudriver_get_sets(const options_t* opt) {
   return opt->sets;
 }
